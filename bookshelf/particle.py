@@ -1,10 +1,13 @@
 from pyparticleio.ParticleCloud import ParticleCloud
+from dotenv import load_dotenv
+import os
 
 def _event_call_back(event_data):
     print("Event CallBack: " + str(event_data))
 
 if __name__ == '__main__':
-    c = ParticleCloud(username_or_access_token="")
+    load_dotenv("./.env")
+    c = ParticleCloud(username_or_access_token=os.getenv("ACCESS_TOKEN"))
 
     devices = c.devices_list
     device = [d for d in devices if d.name == "photon-07"][0]
