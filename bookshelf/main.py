@@ -76,7 +76,7 @@ def list():
         s = "No data yet"
     on_time = ""
     if latest_on_event:
-        ts = datetime.strptime(latest_on_event.published_at)
+        ts = datetime.strptime(latest_on_event["published_at"], "%Y-%m-%dT%H:%M:%S.%f%z")
         on_time = getTimeString(ts)
     return render_template('main.html', latest_event = s, on_time = on_time)
 
