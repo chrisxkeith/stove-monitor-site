@@ -24,28 +24,8 @@ import storage
 from pyparticleio.ParticleCloud import ParticleCloud
 from dotenv import load_dotenv
 import os
-
-# [START upload_image_file]
-def upload_image_file(img):
-    """
-    Upload the user-uploaded file to Google Cloud Storage and retrieve its
-    publicly-accessible URL.
-    """
-    if not img:
-        return None
-
-    public_url = storage.upload_file(
-        img.read(),
-        img.filename,
-        img.content_type
-    )
-
-    current_app.logger.info(
-        'Uploaded file %s as %s.', img.filename, public_url)
-
-    return public_url
-# [END upload_image_file]
-
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 app = Flask(__name__)
 app.config.update(
@@ -65,16 +45,26 @@ if not app.testing:
     client.setup_logging()
 
 latest_event = None
+latest_on_event = None
 
 def _event_call_back(event_data):
     global latest_event
     latest_event = event_data
+    global latest_on_event
+    if latest_on_event is None and latest_event["data"] == "true":
+        latest_on_event = latest_event
+    if latest_event["data"] == "false":
+        latest_on_event = None
 
 load_dotenv("./.env")
 particleCloud = ParticleCloud(username_or_access_token=os.getenv("ACCESS_TOKEN"))
 device = [d for d in particleCloud.devices_list if d.name == "photon-07"][0]
 
 device.subscribe('Light sensor', _event_call_back)
+device.getData("")
+
+def getTimeString(theDateTime):
+    return theDateTime.astimezone(ZoneInfo('US/Pacific')).strftime('%I:%M %p')
 
 @app.route('/')
 def list():
@@ -84,58 +74,17 @@ def list():
             s = "On"
     else:
         s = "No data yet"
-    return render_template('main.html', latest_event = s)
+    on_time = ""
+    if latest_on_event:
+        ts = datetime.strptime(latest_on_event.published_at)
+        on_time = getTimeString(ts)
+    return render_template('main.html', latest_event = s, on_time = on_time)
 
 
-@app.route('/books/<book_id>')
-def view(book_id):
-    book = firestore.read(book_id)
-    return render_template('view.html', book=book)
-
-
-@app.route('/books/add', methods=['GET', 'POST'])
-def add():
-    if request.method == 'POST':
-        data = request.form.to_dict(flat=True)
-
-        # If an image was uploaded, update the data to point to the new image.
-        image_url = upload_image_file(request.files.get('image'))
-
-        if image_url:
-            data['imageUrl'] = image_url
-
-        book = firestore.create(data)
-
-        return redirect(url_for('.view', book_id=book['id']))
-
-    return render_template('form.html', action='Add', book={})
-
-
-@app.route('/books/<book_id>/edit', methods=['GET', 'POST'])
-def edit(book_id):
-    book = firestore.read(book_id)
-
-    if request.method == 'POST':
-        data = request.form.to_dict(flat=True)
-
-        # If an image was uploaded, update the data to point to the new image.
-        image_url = upload_image_file(request.files.get('image'))
-
-        if image_url:
-            data['imageUrl'] = image_url
-
-        book = firestore.update(data, book_id)
-
-        return redirect(url_for('.view', book_id=book['id']))
-
-    return render_template('form.html', action='Edit', book=book)
-
-
-@app.route('/books/<book_id>/delete')
-def delete(book_id):
-    firestore.delete(book_id)
-    return redirect(url_for('.list'))
-
+@app.route('/status')
+def view():
+    return render_template('status.html', latest_event = latest_event,
+        latest_on_event = latest_on_event)
 
 @app.route('/logs')
 def logs():
