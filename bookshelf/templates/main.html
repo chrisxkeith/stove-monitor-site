@@ -8,10 +8,19 @@
 {% block content %}
 <hr><h1>This is a mockup</h1><hr>
 <h3>
-    Burner indicator light<br><i><big><big>Off</big></big></i>
+    Burner indicator light<br>
+    <i><big><big>
+        {{ latest_event }}
+    </big></big></i>
+</h3>
+<!-- 
+<h3>
+    Stovetop average temperature
+    <br><i><big><big>...to come...</big></big></i>
 </h3>
 <h3>
-    Stovetop average temperature<br><i><big><big>...to come...</big></big></i>
+    Stovetop heat map
+    <br><i>...to come...</i>
 </h3>
-<!-- Stovetop heat map:<br><i>...to come...</i> -->
-{% endblock %}
+-->
+{% endblock content %}

@@ -21,6 +21,9 @@ from google.cloud import error_reporting
 import google.cloud.logging
 import storage
 
+from pyparticleio.ParticleCloud import ParticleCloud
+from dotenv import load_dotenv
+import os
 
 # [START upload_image_file]
 def upload_image_file(img):
@@ -61,10 +64,27 @@ if not app.testing:
     # Attaches a Google Stackdriver logging handler to the root logger
     client.setup_logging()
 
+latest_event = None
+
+def _event_call_back(event_data):
+    global latest_event
+    latest_event = event_data
+
+load_dotenv("./.env")
+particleCloud = ParticleCloud(username_or_access_token=os.getenv("ACCESS_TOKEN"))
+device = [d for d in particleCloud.devices_list if d.name == "photon-07"][0]
+
+device.subscribe('Light sensor', _event_call_back)
 
 @app.route('/')
 def list():
-    return render_template('main.html')
+    s = "Off"
+    if (latest_event):
+        if latest_event["data"] == 'true':
+            s = "On"
+    else:
+        s = "No data yet"
+    return render_template('main.html', latest_event = s)
 
 
 @app.route('/books/<book_id>')
