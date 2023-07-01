@@ -6,8 +6,6 @@ cloudshell_open --repo_url "https://github.com/chrisxkeith/stove-monitor-site.gi
 cd ~/cloudshell_open/stove-monitor-site                             ; if [ $? -ne 0 ] ; then exit -6 ; fi
 gcloud config set project stove-monitor                             ; if [ $? -ne 0 ] ; then exit -6 ; fi
 pip3 install -r requirements.txt --user                             ; if [ $? -ne 0 ] ; then exit -6 ; fi
-pip3 install PyParticleIO --user                                    ; if [ $? -ne 0 ] ; then exit -6 ; fi
-pip3 install python-dotenv                                          ; if [ $? -ne 0 ] ; then exit -6 ; fi
 cd bookshelf                                                        ; if [ $? -ne 0 ] ; then exit -6 ; fi
 cp ~/.env .                                                         ; if [ $? -ne 0 ] ; then exit -6 ; fi
 ~/.local/bin/gunicorn -b :8080 main:app

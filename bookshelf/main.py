@@ -56,28 +56,36 @@ def _event_call_back(event_data):
     if latest_event["data"] == "false":
         latest_on_event = None
 
-load_dotenv("./.env")
-particleCloud = ParticleCloud(username_or_access_token=os.getenv("ACCESS_TOKEN"))
-device = [d for d in particleCloud.devices_list if d.name == "photon-07"][0]
+env_file_err = None
+if os.path.exists("./.env"):
+    load_dotenv("./.env")
+    particleCloud = ParticleCloud(username_or_access_token=os.getenv("ACCESS_TOKEN"))
+    device = [d for d in particleCloud.devices_list if d.name == "photon-07"][0]
 
-device.subscribe('Light sensor', _event_call_back)
-device.getData("")
+    device.subscribe('Light sensor', _event_call_back)
+    device.getData("")
+else:
+    env_file_err = "No file: ./.env"
 
 def getTimeString(theDateTime):
     return theDateTime.astimezone(ZoneInfo('US/Pacific')).strftime('%I:%M %p')
 
 @app.route('/')
 def list():
-    s = "Off"
-    if (latest_event):
-        if latest_event["data"] == 'true':
-            s = "On"
+    if env_file_err:
+        s = env_file_err
+        on_time = ""
     else:
-        s = "No data yet"
-    on_time = ""
-    if latest_on_event:
-        ts = datetime.strptime(latest_on_event["published_at"], "%Y-%m-%dT%H:%M:%S.%f%z")
-        on_time = getTimeString(ts)
+        s = "Off"
+        if (latest_event):
+            if latest_event["data"] == 'true':
+                s = "On"
+        else:
+            s = "No data yet"
+        on_time = ""
+        if latest_on_event:
+            ts = datetime.strptime(latest_on_event["published_at"], "%Y-%m-%dT%H:%M:%S.%f%z")
+            on_time = getTimeString(ts)
     return render_template('main.html', latest_event = s, on_time = on_time)
 
 
