@@ -70,11 +70,24 @@ else:
 def getTimeString(theDateTime):
     return theDateTime.astimezone(ZoneInfo('US/Pacific')).strftime('%I:%M %p')
 
+def getElapsedTime(pastTime):
+    now = datetime.now(ZoneInfo('US/Pacific'))
+    elapsedSeconds = now - pastTime
+    mins = int(elapsedSeconds.total_seconds() / 60)
+    secs = int(elapsedSeconds.total_seconds() % 60)
+    return "{:0>2}:{:0>2}".format(mins, secs)
+
+def getTimeVals(ts):
+    on_time = getTimeString(ts)
+    elapsed_time = getElapsedTime(ts)
+    return [ on_time, elapsed_time]
+
 @app.route('/')
 def list():
+    on_time = ""
+    elapsed_time = ""
     if env_file_err:
         s = env_file_err
-        on_time = ""
     else:
         s = "Off"
         if (latest_event):
@@ -82,12 +95,11 @@ def list():
                 s = "On"
         else:
             s = "No data yet"
-        on_time = ""
         if latest_on_event:
-            ts = datetime.strptime(latest_on_event["published_at"], "%Y-%m-%dT%H:%M:%S.%f%z")
-            on_time = getTimeString(ts)
-    return render_template('main.html', latest_event = s, on_time = on_time)
+            [ on_time, elapsed_time ] = getTimeVals(datetime.strptime(latest_on_event["published_at"], "%Y-%m-%dT%H:%M:%S.%f%z"))
+            elapsed_time += " elapsed"
 
+    return render_template('main.html', latest_event = s, on_time = on_time, elapsed_time = elapsed_time)
 
 @app.route('/status')
 def view():
