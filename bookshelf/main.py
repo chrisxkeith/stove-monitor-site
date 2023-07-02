@@ -44,26 +44,41 @@ if not app.testing:
     # Attaches a Google Stackdriver logging handler to the root logger
     client.setup_logging()
 
-latest_event = None
-latest_on_event = None
+class LightSensor:
+    latest_event = None
+    latest_on_event = None
 
-def _event_call_back(event_data):
-    global latest_event
-    latest_event = event_data
-    global latest_on_event
-    if latest_on_event is None and latest_event["data"] == "true":
-        latest_on_event = latest_event
-    if latest_event["data"] == "false":
-        latest_on_event = None
+    def __init__(self, particleCloud, deviceName, eventName):
+        device = [d for d in particleCloud.devices_list if d.name == deviceName][0]
+        device.subscribe(eventName, self.handle_call_back)
+        device.getData("")
+
+    def handle_call_back(self, event_data):
+        self.latest_event = event_data
+        if self.latest_on_event is None and self.latest_event["data"] == "true":
+            self.latest_on_event = self.latest_event
+        if self.latest_event["data"] == "false":
+            self.latest_on_event = None
+
+    def getDisplayVals(self):
+        status = "Off"
+        on_time = ""
+        elapsed_time = ""
+        if (self.latest_event):
+            if self.latest_event["data"] == 'true':
+                status = "On"
+        else:
+            status = "No data yet"
+        if self.latest_on_event:
+            [ on_time, elapsed_time ] = getTimeVals(datetime.strptime(self.latest_on_event["published_at"], "%Y-%m-%dT%H:%M:%S.%f%z"))
+            elapsed_time += " elapsed"
+        return [ status, on_time, elapsed_time ]
 
 env_file_err = None
 if os.path.exists("./.env"):
     load_dotenv("./.env")
     particleCloud = ParticleCloud(username_or_access_token=os.getenv("ACCESS_TOKEN"))
-    device = [d for d in particleCloud.devices_list if d.name == "photon-07"][0]
-
-    device.subscribe('Light sensor', _event_call_back)
-    device.getData("")
+    lightSensor = LightSensor(particleCloud, "photon-07", "Light sensor")
 else:
     env_file_err = "No file: ./.env"
 
@@ -87,24 +102,15 @@ def list():
     on_time = ""
     elapsed_time = ""
     if env_file_err:
-        s = env_file_err
+        status = env_file_err
     else:
-        s = "Off"
-        if (latest_event):
-            if latest_event["data"] == 'true':
-                s = "On"
-        else:
-            s = "No data yet"
-        if latest_on_event:
-            [ on_time, elapsed_time ] = getTimeVals(datetime.strptime(latest_on_event["published_at"], "%Y-%m-%dT%H:%M:%S.%f%z"))
-            elapsed_time += " elapsed"
-
-    return render_template('main.html', latest_event = s, on_time = on_time, elapsed_time = elapsed_time)
+        [ status, on_time, elapsed_time ] = lightSensor.getDisplayVals()
+    return render_template('main.html', latest_event = status, on_time = on_time, elapsed_time = elapsed_time)
 
 @app.route('/status')
 def view():
-    return render_template('status.html', latest_event = latest_event,
-        latest_on_event = latest_on_event)
+    return render_template('status.html', latest_event = lightSensor.latest_event,
+        latest_on_event = lightSensor.latest_on_event)
 
 @app.route('/logs')
 def logs():
