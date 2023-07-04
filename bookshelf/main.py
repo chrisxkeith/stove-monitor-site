@@ -50,7 +50,10 @@ class Sensor:
     def __init__(self, particleCloud, deviceName, eventName):
         device = [d for d in particleCloud.devices_list if d.name == deviceName][0]
         device.subscribe(eventName, self.handle_call_back)
-        device.getData("")
+        try:
+            device.getData("")
+        except Exception as e:
+            print(repr(e) + ", deviceName: " + deviceName + ", eventName: " + eventName)
 
     def handle_call_back(self, event_data):
         self.latest_event = event_data
@@ -126,7 +129,7 @@ def list():
         status = env_file_err
     else:
         [ status, on_time, elapsed_time ] = lightSensor.getDisplayVals()
-        temperature = temperatureSensor.getDisplayVals();
+        temperature = temperatureSensor.getDisplayVals()
     return render_template('main.html', latest_event = status, on_time = on_time, elapsed_time = elapsed_time,
         temperature = temperature)
 
