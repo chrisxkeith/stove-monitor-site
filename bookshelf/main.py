@@ -44,9 +44,8 @@ if not app.testing:
     # Attaches a Google Stackdriver logging handler to the root logger
     client.setup_logging()
 
-class LightSensor:
+class Sensor:
     latest_event = None
-    latest_on_event = None
 
     def __init__(self, particleCloud, deviceName, eventName):
         device = [d for d in particleCloud.devices_list if d.name == deviceName][0]
@@ -55,9 +54,23 @@ class LightSensor:
 
     def handle_call_back(self, event_data):
         self.latest_event = event_data
-        if self.latest_on_event is None and self.latest_event["data"] == "true":
+
+class TemperatureSensor(Sensor):
+    latest_temperature_event = None
+
+    def handle_call_back(self, event_data):
+        super().handle_call_back(event_data)
+        if self.latest_event["event_name"] == "Temperature":
+            self.latest_temperature_event = event_data
+
+class LightSensor(Sensor):
+    latest_on_event = None
+
+    def handle_call_back(self, event_data):
+        super().handle_call_back(event_data)
+        if self.latest_on_event is None and event_data["data"] == "true":
             self.latest_on_event = self.latest_event
-        if self.latest_event["data"] == "false":
+        if event_data["data"] == "false":
             self.latest_on_event = None
 
     def getDisplayVals(self):
@@ -79,6 +92,7 @@ if os.path.exists("./.env"):
     load_dotenv("./.env")
     particleCloud = ParticleCloud(username_or_access_token=os.getenv("ACCESS_TOKEN"))
     lightSensor = LightSensor(particleCloud, "photon-07", "Light sensor")
+    temperatureSensor = TemperatureSensor(particleCloud, "photon-02", "Temperature")
 else:
     env_file_err = "No file: ./.env"
 
