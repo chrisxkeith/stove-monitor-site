@@ -124,7 +124,8 @@ def list():
 @app.route('/status')
 def view():
     return render_template('status.html', latest_event = lightSensor.latest_event,
-        latest_on_event = lightSensor.latest_on_event)
+        latest_on_event = lightSensor.latest_on_event,
+        latest_temperature_event = temperatureSensor.latest_temperature_event)
 
 @app.route('/logs')
 def logs():
