@@ -63,6 +63,12 @@ class TemperatureSensor(Sensor):
         if self.latest_event["event_name"] == "Temperature":
             self.latest_temperature_event = event_data
 
+    def getDisplayVals(self):
+        temperature = "No data yet"
+        if (self.latest_temperature_event):
+            temperature = str(self.latest_event["data"])
+        return temperature
+
 class LightSensor(Sensor):
     latest_on_event = None
 
@@ -92,7 +98,7 @@ if os.path.exists("./.env"):
     load_dotenv("./.env")
     particleCloud = ParticleCloud(username_or_access_token=os.getenv("ACCESS_TOKEN"))
     lightSensor = LightSensor(particleCloud, "photon-07", "Light sensor")
-    temperatureSensor = TemperatureSensor(particleCloud, "photon-02", "Temperature")
+    temperatureSensor = TemperatureSensor(particleCloud, "photon-05", "Temperature")
 else:
     env_file_err = "No file: ./.env"
 
@@ -115,11 +121,14 @@ def getTimeVals(ts):
 def list():
     on_time = ""
     elapsed_time = ""
+    temperature = ""
     if env_file_err:
         status = env_file_err
     else:
         [ status, on_time, elapsed_time ] = lightSensor.getDisplayVals()
-    return render_template('main.html', latest_event = status, on_time = on_time, elapsed_time = elapsed_time)
+        temperature = temperatureSensor.getDisplayVals();
+    return render_template('main.html', latest_event = status, on_time = on_time, elapsed_time = elapsed_time,
+        temperature = temperature)
 
 @app.route('/status')
 def view():
